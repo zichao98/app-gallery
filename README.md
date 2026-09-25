@@ -21,3 +21,5 @@ Edit the `APPS` array (and optionally `ART`) in `public/index.html`.
 ```bash
 npx wrangler deploy
 ```
+
+Pushes to `main` auto-deploy via Cloudflare Workers Builds.
