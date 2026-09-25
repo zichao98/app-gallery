@@ -10,7 +10,7 @@ A curated gallery of my Cloudflare Workers apps.
 | [易序｜六爻排卦](https://yixu-iching.zichaoleng55.workers.dev/) | I Ching hexagram tool |
 | [收藏白板](https://saved-board.zichaoleng55.workers.dev/) | Whiteboard for saved links |
 | [甯家投資策劃室](https://lengs-funding.zichaoleng55.workers.dev/#owners) | Family investment planning |
-| [FX Stop Monitor](https://stock-monitoring-integration.zichaoleng55.workers.dev/) | MYR/TWD & MYR/USD rate monitor |
+| [Stock Monitor](https://stock-monitoring-integration.zichaoleng55.workers.dev/) | Taiwan/US stock and MYR forex signals |
 
 ## Add an app
 
