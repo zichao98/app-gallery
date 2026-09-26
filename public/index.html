@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>App Gallery｜Zichao Leng</title>
-<meta name="description" content="Zichao Leng 的個人應用程式展示館：收藏白板、投資策劃、六爻排卦、互動技術講解與匯率監控。" />
+<meta name="description" content="Zichao Leng 的個人應用程式展示館：收藏白板、投資策劃、六爻排卦、互動技術講解、匯率監控與復古合成器。" />
 <meta name="theme-color" content="#0b0b12" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237c5cff'/%3E%3Cstop offset='1' stop-color='%2300d4c8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Crect x='7' y='7' width='8' height='8' rx='2' fill='white'/%3E%3Crect x='17' y='7' width='8' height='8' rx='2' fill='white' opacity='.6'/%3E%3Crect x='7' y='17' width='8' height='8' rx='2' fill='white' opacity='.6'/%3E%3Crect x='17' y='17' width='8' height='8' rx='2' fill='white'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -409,6 +409,12 @@
       <path class="float d2" d="M70 100 L108 86 L146 92 L184 70 L222 74 L260 52 L298 34" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       <circle class="float d2" cx="298" cy="34" r="5" fill="#fff"/>
     </svg>`,
+    synth: `<svg viewBox="0 0 400 150" preserveAspectRatio="xMidYMid slice" fill="none">
+      <g fill="rgba(255,255,255,.14)">${Array.from({length:30*9},(_,i)=>`<circle cx="${22+(i%30)*12.4}" cy="${22+Math.floor(i/30)*13}" r="1.4"/>`).join("")}</g>
+      <g class="float" fill="#fff">${Array.from({length:30},(_,i)=>{const y=Math.round(4+3.4*Math.sin(i/2.3)+1.6*Math.sin(i/0.9));return `<circle cx="${22+i*12.4}" cy="${22+y*13}" r="3"/>`}).join("")}</g>
+      <circle class="float d2" cx="352" cy="36" r="7" fill="#ff3b30"/>
+      <text x="22" y="140" fill="rgba(255,255,255,.75)" font-size="11" font-family="JetBrains Mono, monospace" letter-spacing="2">DOT—01 · 8 VOICES</text>
+    </svg>`,
     iching: `<svg viewBox="0 0 400 150" preserveAspectRatio="xMidYMid slice" fill="none">
       <circle cx="200" cy="75" r="58" stroke="rgba(255,255,255,.25)" stroke-dasharray="2 6"/>
       <circle cx="200" cy="75" r="44" stroke="rgba(255,255,255,.18)"/>
@@ -457,6 +463,10 @@
       desc: "即時監控台股、美股與馬幣匯率，以均線、RSI、布林通道產生買賣訊號，觸及目標價即提醒，並有 AI 市場解讀。",
       tags: ["股票", "匯率", "技術指標", "AI"], url: "https://stock-monitoring-integration.zichaoleng55.workers.dev/",
       accent: "#3aa0ff", accent2: "#7c5cff" },
+    { id: "synth", name: "DOT—01", sub: "復古點陣合成器", cat: "音樂",
+      desc: "在瀏覽器裡玩的復古點陣風格合成器：雙振盪器、濾波包絡、LFO、失真與位元破碎效果、琶音器、16 步編曲器，支援電腦鍵盤與 MIDI，還能錄音下載。",
+      tags: ["合成器", "Web Audio", "MIDI", "免安裝"], url: "https://dot-synth.zichaoleng55.workers.dev/",
+      accent: "#2a2a28", accent2: "#d71921" },
   ];
 
   const $ = (s, r = document) => r.querySelector(s);
