@@ -1,0 +1,46 @@
+# 錢的主人 · Money Master
+
+把「十週打造致富體質」理財試算表做成的個人財務 app。每月填一次收支，每季盤點一次資產，跨裝置同步。
+
+**Live:** https://money-master.zichaoleng55.workers.dev/
+
+## 功能
+
+| 頁面 | 內容 | 對應原試算表 |
+| --- | --- | --- |
+| 全景 | 淨值、目標進度、今年盈餘與儲蓄率；依年限、每月投入、初始本金算出需要的年化報酬率；淨值走勢、每月盈餘、四桶金配置 | 財務全景圖 |
+| 每月 | 各類別的預算與實際並排填寫，年度總覽推算每月月底現金；年度盈餘目標換算成每週、每天 | 收支細項統計、滾動預算與實際損益表 |
+| 資產 | 帳戶（多幣別、流動性、四桶金分類）與每季盤點快照 | 資產負債表、資產配置與投資組合 |
+| 目標 | 人生願景、理想生活的年花費與一次性花費、提領率（4% 法則）、四桶金目標比例 | 夢想倉庫、財務目標拆解 |
+| 設定 | 類別、預設匯率、備份下載與匯入、雲端歷史版本還原、改密碼 | |
+
+還沒做：保險盤點、債務處置、生存底線、十週行動清單。
+
+## 架構
+
+- 前端：React + TypeScript + Vite（`src/`），金額試算都在 `src/calc.ts`。
+- 後端：一個 Cloudflare Worker（`worker/index.ts`），前端打包後內嵌在 Worker 裡（`scripts/embed.mjs` 產生 `worker/static.gen.ts`）。
+- 資料：單一 SQLite Durable Object（`Vault`）存整份資料 JSON，每次儲存帶版本號，兩台裝置同時改會偵測衝突；每小時留一份歷史版本，最多 200 份。
+- 登入：單一密碼（PBKDF2 雜湊存在 Durable Object），HttpOnly cookie 有效 90 天；改密碼會登出其他裝置；連錯 8 次鎖 15 分鐘。
+
+## 開發
+
+```bash
+npm install
+printf 'SESSION_SECRET=dev\nINITIAL_PASSWORD=devpass123\n' > .dev.vars
+npm test             # 試算邏輯的單元測試
+npm run preview      # build 後用 wrangler dev 在 http://127.0.0.1:8787 跑
+```
+
+## 部署
+
+```bash
+npm run deploy
+```
+
+第一次部署需要設定兩個 secret：
+
+```bash
+npx wrangler secret put SESSION_SECRET     # 任意長隨機字串，用來簽 cookie
+npx wrangler secret put INITIAL_PASSWORD   # 第一次登入的密碼，登入後可在設定頁更改
+```
