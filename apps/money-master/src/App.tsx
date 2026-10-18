@@ -4,14 +4,18 @@ import { Dashboard } from "./pages/Dashboard";
 import { Monthly } from "./pages/Monthly";
 import { Assets } from "./pages/Assets";
 import { Goals } from "./pages/Goals";
+import { Debts } from "./pages/Debts";
+import { Insurance } from "./pages/Insurance";
 import { Settings } from "./pages/Settings";
 
-export type Page = "dashboard" | "monthly" | "assets" | "goals" | "settings";
+export type Page = "dashboard" | "monthly" | "assets" | "debts" | "insurance" | "goals" | "settings";
 
 const NAV: { id: Page; label: string; icon: string }[] = [
   { id: "dashboard", label: "全景", icon: "M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z" },
   { id: "monthly", label: "每月", icon: "M7 2v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2zM5 9h14v11H5z" },
   { id: "assets", label: "資產", icon: "M4 10v7h3v-7zm6 0v7h3v-7zM2 22h19v-3H2zm14-12v7h3v-7zM11.5 1 2 6v2h19V6z" },
+  { id: "debts", label: "債務", icon: "M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2m0 14H4v-6h16zm0-10H4V6h16z" },
+  { id: "insurance", label: "保險", icon: "M12 1 3 5v6c0 5.6 3.8 10.7 9 12 5.2-1.3 9-6.4 9-12V5zm0 2.2 7 3.1V11c0 4.5-2.9 8.7-7 9.9-4.1-1.2-7-5.4-7-9.9V6.3z" },
   { id: "goals", label: "目標", icon: "M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2m0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8m0-14a6 6 0 1 0 6 6 6 6 0 0 0-6-6m0 10a4 4 0 1 1 4-4 4 4 0 0 1-4 4m0-6a2 2 0 1 0 2 2 2 2 0 0 0-2-2" },
   { id: "settings", label: "設定", icon: "M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3h-4l-.4 2.7a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1L11 21h4l.4-2.7a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 3.5-3.5 3.5 3.5 0 0 1-3.5 3.5" },
 ];
@@ -86,6 +90,8 @@ export function App() {
         {page === "dashboard" && <Dashboard store={store} go={go} />}
         {page === "monthly" && <Monthly store={store} go={go} />}
         {page === "assets" && <Assets store={store} />}
+        {page === "debts" && <Debts store={store} />}
+        {page === "insurance" && <Insurance store={store} />}
         {page === "goals" && <Goals store={store} />}
         {page === "settings" && <Settings store={store} />}
       </main>

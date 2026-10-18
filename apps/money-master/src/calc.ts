@@ -1,4 +1,4 @@
-import type { AppData, Bucket, Snapshot } from "./types";
+import type { AppData, Bucket, Debt, DebtStrategy, InsuranceNeed, Snapshot } from "./types";
 
 export interface Totals {
   income: number;
@@ -192,4 +192,150 @@ export function ymOf(d: Date): string {
 export function shiftYm(ym: string, delta: number): string {
   const [y, m] = ym.split("-").map(Number);
   return ymOf(new Date(y, m - 1 + delta, 1));
+}
+
+/** Average monthly income for a year: actuals where filled in, otherwise the budget. */
+export function monthlyIncome(data: AppData, year: number): number {
+  const rows = yearRows(data, year);
+  const actual = rows.filter(r => r.hasActual);
+  if (actual.length) return sum(actual.map(r => r.actual.income)) / actual.length;
+  const budget = rows.filter(r => r.budget.income > 0);
+  return budget.length ? sum(budget.map(r => r.budget.income)) / budget.length : 0;
+}
+
+// ---------- insurance ----------
+
+export interface NeedCoverage {
+  target: number | undefined;
+  /** Sum insured by policies held today (planned new ones excluded). */
+  covered: number;
+  /** Coverage once the planned changes are made (cancellations out, new policies in). */
+  afterPlan: number;
+  gap: number | undefined;
+  premium: number;
+  count: number;
+}
+
+export function coverageByNeed(data: AppData): Record<InsuranceNeed, NeedCoverage> {
+  const out = {} as Record<InsuranceNeed, NeedCoverage>;
+  for (const need of ["medical", "life", "care", "property"] as InsuranceNeed[]) {
+    const ps = data.insurance.policies.filter(p => p.need === need);
+    const held = ps.filter(p => p.plan !== "add");
+    const covered = sum(held.map(p => p.coverage || 0));
+    const afterPlan = sum(ps.filter(p => p.plan !== "cancel").map(p => p.coverage || 0));
+    const target = data.insurance.needs[need]?.target;
+    out[need] = {
+      target,
+      covered,
+      afterPlan,
+      gap: target === undefined ? undefined : target - covered,
+      premium: sum(held.map(p => p.annualPremium || 0)),
+      count: held.length,
+    };
+  }
+  return out;
+}
+
+export function premiumTotal(data: AppData): number {
+  return sum(data.insurance.policies.filter(p => p.plan !== "add").map(p => p.annualPremium || 0));
+}
+
+/** Premiums due in each calendar month (index 0 = January) for policies with a known due month. */
+export function premiumByMonth(data: AppData): number[] {
+  const months = Array<number>(12).fill(0);
+  for (const p of data.insurance.policies) {
+    if (p.plan !== "add" && p.payMonth && p.payMonth >= 1 && p.payMonth <= 12) months[p.payMonth - 1] += p.annualPremium || 0;
+  }
+  return months;
+}
+
+// ---------- debts ----------
+
+const MAX_MONTHS = 1200;
+const EPS = 0.005;
+
+export interface Amortization {
+  months: number;
+  interest: number;
+  /** False when the payment never covers the interest, so the balance never shrinks. */
+  paidOff: boolean;
+}
+
+/** Pays one debt down month by month at a fixed payment, interest charged monthly at rate/12. */
+export function amortize(balance: number, annualRate: number, payment: number): Amortization {
+  if (balance <= 0) return { months: 0, interest: 0, paidOff: true };
+  const r = annualRate / 12;
+  if (payment <= 0 || payment <= balance * r) return { months: Infinity, interest: Infinity, paidOff: false };
+  let b = balance;
+  let interest = 0;
+  let m = 0;
+  while (b > EPS && m < MAX_MONTHS) {
+    const i = b * r;
+    interest += i;
+    b = b + i - Math.min(payment, b + i);
+    m++;
+  }
+  return b > EPS ? { months: Infinity, interest: Infinity, paidOff: false } : { months: m, interest, paidOff: true };
+}
+
+/** Which debt gets extra money first: highest rate (avalanche), smallest balance (snowball), or the list order. */
+export function debtOrder(debts: Debt[], strategy: DebtStrategy): string[] {
+  const live = debts.filter(d => d.balance > 0);
+  if (strategy === "avalanche") live.sort((a, b) => b.rate - a.rate || a.balance - b.balance);
+  else if (strategy === "snowball") live.sort((a, b) => a.balance - b.balance || b.rate - a.rate);
+  return live.map(d => d.id);
+}
+
+export interface PayoffPlan {
+  months: number;
+  interest: number;
+  paidOff: boolean;
+  /** Month (1-based, from now) in which each debt reaches zero. */
+  payoffMonth: Record<string, number>;
+}
+
+/**
+ * Simulates paying every debt at once. Each debt gets its own monthly payment;
+ * `extra` goes to the first unpaid debt in `order`. With `rollover`, a paid-off
+ * debt's payment joins the extra money (the snowball/avalanche method).
+ */
+export function simulatePayoff(debts: Debt[], extra: number, order: string[], rollover = true): PayoffPlan {
+  const state = debts.filter(d => d.balance > 0).map(d => ({ id: d.id, b: d.balance, r: d.rate / 12, pay: Math.max(0, d.monthlyPayment) }));
+  const byId = new Map(state.map(s => [s.id, s]));
+  const payoffMonth: Record<string, number> = {};
+  let interest = 0;
+  let month = 0;
+  while (state.some(s => s.b > EPS) && month < MAX_MONTHS) {
+    month++;
+    let pool = Math.max(0, extra);
+    for (const s of state) {
+      if (s.b <= EPS) {
+        if (rollover) pool += s.pay;
+        continue;
+      }
+      const i = s.b * s.r;
+      interest += i;
+      s.b += i;
+      const p = Math.min(s.pay, s.b);
+      s.b -= p;
+      if (rollover) pool += s.pay - p;
+      if (s.b <= EPS) payoffMonth[s.id] = month;
+    }
+    for (const id of order) {
+      const s = byId.get(id);
+      if (!s || s.b <= EPS || pool <= 0) continue;
+      const p = Math.min(pool, s.b);
+      s.b -= p;
+      pool -= p;
+      if (s.b <= EPS) payoffMonth[s.id] = month;
+    }
+  }
+  const paidOff = state.every(s => s.b <= EPS);
+  return { months: paidOff ? month : Infinity, interest: paidOff ? interest : Infinity, paidOff, payoffMonth };
+}
+
+/** The month `months` from `d`: "2031 年 5 月", or "2031/5" when short. */
+export function addMonths(d: Date, months: number, short = false): string {
+  const x = new Date(d.getFullYear(), d.getMonth() + months, 1);
+  return short ? `${x.getFullYear()}/${x.getMonth() + 1}` : `${x.getFullYear()} 年 ${x.getMonth() + 1} 月`;
 }

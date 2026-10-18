@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NumberInput } from "../components/NumberInput";
+import { saveFile } from "../download";
 import { api, migrate, type Store } from "../sync";
 import { KIND_LABEL, uid, type CategoryKind } from "../types";
 
@@ -107,11 +108,7 @@ function Backup({ store }: { store: Store }) {
 
   const download = () => {
     const blob = new Blob([JSON.stringify(store.data, null, 2)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `money-master-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    saveFile(blob, `money-master-${new Date().toISOString().slice(0, 10)}.json`);
   };
 
   const importFile = async (file: File) => {
@@ -136,9 +133,12 @@ function Backup({ store }: { store: Store }) {
 
   return (
     <section className="card">
-      <h2>備份與還原</h2>
-      <p className="muted small">雲端每小時自動保留一份歷史版本（最多 200 份）。也可以自己下載備份檔。</p>
+      <h2>匯出與備份</h2>
+      <p className="muted small">
+        Excel 檔把總覽、每月收支、資產盤點、債務、保險、財務目標分成不同工作表，方便自己分析或列印；JSON 備份檔可以再匯入還原。雲端也會每小時自動保留一份歷史版本（最多 200 份）。
+      </p>
       <div className="actions">
+        <ExportExcelButton store={store} primary />
         <button className="btn" onClick={download}>
           下載備份（JSON）
         </button>
@@ -172,6 +172,29 @@ function Backup({ store }: { store: Store }) {
         </ul>
       )}
     </section>
+  );
+}
+
+export function ExportExcelButton({ store, primary }: { store: Store; primary?: boolean }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <button
+      className={`btn ${primary ? "primary" : ""}`}
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try {
+          const { downloadWorkbook } = await import("../exportXlsx");
+          downloadWorkbook(store.data);
+        } catch {
+          alert("匯出失敗，請再試一次。");
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      {busy ? "產生中…" : "匯出 Excel"}
+    </button>
   );
 }
 

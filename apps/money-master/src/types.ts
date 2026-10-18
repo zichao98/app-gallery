@@ -56,6 +56,60 @@ export interface Plan {
   applyInflation: boolean;
 }
 
+export type InsuranceNeed = "medical" | "life" | "care" | "property";
+export type PolicyPlan = "keep" | "adjust" | "cancel" | "add";
+
+export interface Policy {
+  id: string;
+  insurer: string;
+  product: string;
+  /** 要保人 — who pays. */
+  policyholder: string;
+  /** 被保險人 — whose risk is covered. */
+  insured: string;
+  need: InsuranceNeed;
+  annualPremium: number;
+  /** Month the premium is due (1–12); undefined when paid monthly or unknown. */
+  payMonth?: number;
+  /** Sum insured counted toward the need's target. */
+  coverage: number;
+  /** How it pays out: beneficiary, reimbursement, lump sum… */
+  coverageNote: string;
+  contact: string;
+  endDate?: string; // YYYY-MM-DD
+  plan: PolicyPlan;
+  planNote: string;
+}
+
+export interface NeedPlan {
+  target?: number;
+  /** Who to call, what documents, what counts — so the family knows what to do. */
+  process: string;
+  next: string;
+}
+
+export type DebtAction = "keep" | "prepay" | "negotiate" | "extend" | "consolidate" | "other";
+
+export interface Debt {
+  id: string;
+  name: string;
+  nature: string;
+  principal: number;
+  balance: number;
+  monthlyPayment: number;
+  /** Annual interest rate as a fraction, e.g. 0.025. */
+  rate: number;
+  endDate?: string; // last scheduled payment, YYYY-MM-DD
+  /** Until this date early repayment may carry a penalty. */
+  lockUntil?: string;
+  action: DebtAction;
+  note: string;
+  /** Liability account this debt mirrors, if any. */
+  accountId?: string;
+}
+
+export type DebtStrategy = "avalanche" | "snowball" | "custom";
+
 export interface AppData {
   schema: 1;
   settings: {
@@ -79,7 +133,42 @@ export interface AppData {
   plan: Plan;
   /** Target share of each bucket, in percent. */
   allocationTarget: Record<Bucket, number>;
+  insurance: {
+    needs: Record<InsuranceNeed, NeedPlan>;
+    policies: Policy[];
+  };
+  debts: {
+    items: Debt[];
+    /** Extra money per month put toward paying debts off early. */
+    extraMonthly: number;
+    strategy: DebtStrategy;
+  };
 }
+
+export const NEEDS: { id: InsuranceNeed; question: string; kinds: string; scope: string }[] = [
+  { id: "medical", question: "生病受傷了誰出錢？", kinds: "醫療、意外險", scope: "住院、手術、復健、薪資補償" },
+  { id: "life", question: "離開人世能留下什麼給在乎的人？", kinds: "壽險", scope: "家人生活費、債務、教育基金、遺產稅" },
+  { id: "care", question: "無法自理怎麼辦？", kinds: "癌症、失能、重大傷病、長照", scope: "看護、醫療、生活費、家人的負擔" },
+  { id: "property", question: "貴重物品損害怎麼辦？", kinds: "車險、住宅火險、其他產險", scope: "資產估值、可能發生的情況" },
+];
+
+export const POLICY_PLANS: { id: PolicyPlan; name: string }[] = [
+  { id: "keep", name: "保留" },
+  { id: "adjust", name: "調整" },
+  { id: "cancel", name: "考慮解約" },
+  { id: "add", name: "規劃新增" },
+];
+
+export const DEBT_NATURES = ["房貸", "車貸", "信貸", "學貸", "信用卡", "分期付款", "私人借款", "其他"];
+
+export const DEBT_ACTIONS: { id: DebtAction; name: string }[] = [
+  { id: "keep", name: "維持現狀繼續還" },
+  { id: "prepay", name: "有餘錢優先提前還" },
+  { id: "negotiate", name: "談降息" },
+  { id: "extend", name: "拉長期限降低月付" },
+  { id: "consolidate", name: "整合債務" },
+  { id: "other", name: "其他（協商等）" },
+];
 
 export const BUCKETS: { id: Bucket; name: string; hint: string }[] = [
   { id: "protect", name: "保障型", hint: "緊急備用金、儲蓄險" },
@@ -157,5 +246,15 @@ export function defaultData(): AppData {
     goals: { vision: "", items: [], withdrawalRate: 0.04 },
     plan: { years: 20, monthly: 10000, initial: 0, inflation: 0.02, applyInflation: false },
     allocationTarget: { protect: 20, defend: 50, attack: 25, lottery: 5 },
+    insurance: {
+      needs: {
+        medical: { process: "", next: "" },
+        life: { process: "", next: "" },
+        care: { process: "", next: "" },
+        property: { process: "", next: "" },
+      },
+      policies: [],
+    },
+    debts: { items: [], extraMonthly: 0, strategy: "avalanche" },
   };
 }
