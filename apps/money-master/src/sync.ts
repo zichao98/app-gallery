@@ -44,6 +44,8 @@ export function migrate(raw: unknown): AppData {
       policies: d.insurance?.policies ?? [],
     },
     debts: { ...base.debts, ...d.debts },
+    survival: { ...base.survival, ...d.survival },
+    actions: { ...base.actions, ...d.actions },
     categories: d.categories ?? base.categories,
     months: d.months ?? {},
     accounts: d.accounts ?? [],

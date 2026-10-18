@@ -110,6 +110,25 @@ export interface Debt {
 
 export type DebtStrategy = "avalanche" | "snowball" | "custom";
 
+/** Income you could still bring in if the worst happened (side jobs, freelancing…). */
+export interface FloorIncome {
+  id: string;
+  name: string;
+  amount: number;
+  note: string;
+}
+
+/** The least an expense category could drop to, and how. Unset floor = can't cut it. */
+export interface FloorExpense {
+  floor?: number;
+  plan: string;
+}
+
+export interface ActionStatus {
+  s: "done" | "skip";
+  at: string; // YYYY-MM-DD
+}
+
 export interface AppData {
   schema: 1;
   settings: {
@@ -142,6 +161,21 @@ export interface AppData {
     /** Extra money per month put toward paying debts off early. */
     extraMonthly: number;
     strategy: DebtStrategy;
+  };
+  survival: {
+    scenario: string;
+    incomes: FloorIncome[];
+    /** Keyed by expense category id. */
+    expenses: Record<string, FloorExpense>;
+    /** How many months of baseline spending the emergency fund should cover. */
+    targetMonths: number;
+  };
+  actions: {
+    /** Day the ten-week plan started, YYYY-MM-DD. */
+    start?: string;
+    status: Record<string, ActionStatus>;
+    /** Last time each recurring check was done, YYYY-MM-DD. */
+    recurring: Record<string, string>;
   };
 }
 
@@ -256,5 +290,7 @@ export function defaultData(): AppData {
       policies: [],
     },
     debts: { items: [], extraMonthly: 0, strategy: "avalanche" },
+    survival: { scenario: "", incomes: [], expenses: {}, targetMonths: 6 },
+    actions: { status: {}, recurring: {} },
   };
 }

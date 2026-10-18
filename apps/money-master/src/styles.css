@@ -1396,3 +1396,248 @@ label.check {
   justify-content: space-between;
   gap: 12px;
 }
+
+/* ---------- nav: "more" sheet on phones ---------- */
+
+.nav-item.more,
+.more-sheet,
+.more-backdrop {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .nav-item.secondary {
+    display: none;
+  }
+
+  .nav-item.more {
+    display: flex;
+  }
+
+  .nav-item.more span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .more-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgb(0 0 0 / 0.25);
+    z-index: 9;
+  }
+
+  .more-sheet {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: calc(68px + env(safe-area-inset-bottom));
+    padding: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 30px rgb(0 0 0 / 0.18);
+    z-index: 11;
+  }
+
+  .more-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--surface-2);
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .more-item svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+    flex: none;
+  }
+
+  .more-item.on {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 650;
+  }
+}
+
+/* ---------- action plan ---------- */
+
+.plan-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.plan-status p {
+  margin: 0;
+  flex: 1 1 260px;
+}
+
+.plan-status label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.week summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+}
+
+.week summary::-webkit-details-marker {
+  display: none;
+}
+
+.week summary::before {
+  content: "▸";
+  color: var(--muted);
+  margin-right: 4px;
+}
+
+.week[open] summary::before {
+  content: "▾";
+}
+
+.week summary > span:first-child {
+  flex: 1;
+}
+
+.week.current {
+  border-color: var(--accent);
+}
+
+.week-n {
+  color: var(--accent);
+  margin-right: 4px;
+}
+
+.actions-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 9px 0;
+  border-top: 1px solid var(--border);
+}
+
+.action-check {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  cursor: pointer;
+  flex: 1 1 260px;
+}
+
+.action-check input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+  flex: none;
+}
+
+.action.done .action-text {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.action.skip .action-text {
+  color: var(--muted);
+}
+
+.action-btns {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+}
+
+.muted-link {
+  color: var(--muted);
+}
+
+/* ---------- survival ---------- */
+
+.floor-incomes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.floor-income {
+  display: grid;
+  grid-template-columns: 1fr 120px auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.floor-total {
+  text-align: right;
+  color: var(--text-2);
+}
+
+.card .muted.small.pad {
+  margin: 4px 0 8px;
+}
+
+.survival-table td:last-child {
+  min-width: 160px;
+}
+
+@media (max-width: 760px) {
+  .survival-table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+.actions-card .progress {
+  margin: 0 0 10px;
+}
+
+.next-steps {
+  margin: 0 0 6px;
+  padding-left: 20px;
+}
+
+.next-steps li {
+  padding: 2px 0;
+}
+
+@media (max-width: 760px) {
+  /* keep header buttons clear of the floating sync badge */
+  .page-head.with-action {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-head.with-action > .btn {
+    align-self: flex-start;
+  }
+}

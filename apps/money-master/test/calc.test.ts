@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { amortize, coverageByNeed, debtOrder, futureValue, goalTarget, monthTotals, premiumByMonth, requiredRate, simulatePayoff, snapshotValue, yearRows } from "../src/calc";
+import { amortize, coverageByNeed, debtOrder, futureValue, goalTarget, monthTotals, premiumByMonth, requiredRate, simulatePayoff, snapshotValue, survivalSummary, yearRows } from "../src/calc";
+import { ALL_ITEMS, addMonthsIso, currentWeek, recurringDue } from "../src/actionPlan";
 import { compact, parseAmount } from "../src/format";
 import { defaultData, type AppData, type Debt } from "../src/types";
 
@@ -148,8 +149,49 @@ describe("excel export", () => {
     d.goals.items = [{ id: "g", name: "度假 & <旅行>", annual: 800_000, oneOff: 0 }];
     const files = unzipSync(buildWorkbook(d, new Date(2026, 9, 18)));
     const wb = strFromU8(files["xl/workbook.xml"]);
-    expect(wb.match(/<sheet /g)).toHaveLength(10);
+    expect(wb.match(/<sheet /g)).toHaveLength(12);
     expect(wb).toContain('name="保單"');
-    expect(strFromU8(files["xl/worksheets/sheet10.xml"])).toContain("度假 &amp; &lt;旅行&gt;");
+    expect(strFromU8(files["xl/worksheets/sheet11.xml"])).toContain("度假 &amp; &lt;旅行&gt;");
+  });
+});
+
+describe("survival baseline", () => {
+  it("compares current averages with the floor and computes runway", () => {
+    const d = defaultData();
+    const salary = d.categories.find(c => c.name === "薪資")!;
+    const food = d.categories.find(c => c.kind === "expense")!;
+    const debt = d.categories.find(c => c.name === "償債")!;
+    d.months["2026-01"] = { budget: {}, actual: { [salary.id]: 60_000, [food.id]: 20_000, [debt.id]: 10_000 } };
+    d.months["2026-02"] = { budget: {}, actual: { [salary.id]: 60_000, [food.id]: 30_000, [debt.id]: 10_000 } };
+    d.survival.incomes = [{ id: "i", name: "接案", amount: 5_000, note: "" }];
+    d.survival.expenses[food.id] = { floor: 15_000, plan: "自己煮" };
+    d.accounts = [{ id: "cash", name: "活存", kind: "asset", type: "活存", currency: "TWD", liquid: true, bucket: "protect" }];
+    d.snapshots = [{ id: "s", date: "2026-02-28", balances: { cash: 200_000 }, fx: {} }];
+    const s = survivalSummary(d, 2026);
+    expect(s.avg).toMatchObject({ source: "actual", months: 2 });
+    expect(s.current).toEqual({ income: 60_000, expense: 35_000, surplus: 25_000 });
+    // food floor 15,000 + debt kept at its 10,000 average
+    expect(s.floor).toEqual({ income: 5_000, expense: 25_000, surplus: -20_000 });
+    expect(s.runway).toBe(10);
+    expect(s.zeroIncomeRunway).toBe(8);
+    expect(s.emergencyTarget).toBe(150_000);
+  });
+});
+
+describe("action plan", () => {
+  it("works out the current week and recurring due dates", () => {
+    expect(currentWeek(undefined, "2026-10-18")).toBe(0);
+    expect(currentWeek("2026-10-18", "2026-10-18")).toBe(1);
+    expect(currentWeek("2026-10-01", "2026-10-18")).toBe(3);
+    expect(currentWeek("2026-01-01", "2026-10-18")).toBe(11);
+    expect(addMonthsIso("2026-01-31", 1)).toBe("2026-02-28");
+    const d = defaultData();
+    d.actions.recurring["r-budget"] = "2026-09-10";
+    d.actions.recurring["r-insurance"] = "2026-03-01";
+    const due = Object.fromEntries(recurringDue(d, "2026-10-18").map(r => [r.id, r]));
+    expect(due["r-budget"]).toMatchObject({ next: "2026-10-10", due: true });
+    expect(due["r-insurance"]).toMatchObject({ next: "2027-03-01", due: false });
+    expect(due["r-debts"].due).toBe(true);
+    expect(new Set(ALL_ITEMS.map(i => i.id)).size).toBe(ALL_ITEMS.length);
   });
 });

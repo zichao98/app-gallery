@@ -10,12 +10,14 @@ import {
   rate,
   requiredRate,
   simulatePayoff,
+  survivalSummary,
   snapshotValue,
   sortedSnapshots,
   yearRows,
   yearSummary,
 } from "./calc";
 import { saveFile } from "./download";
+import { recurringDue, today, WEEKS } from "./actionPlan";
 import { buildXlsx, type Cell, type Sheet } from "./xlsx";
 import { BUCKETS, DEBT_ACTIONS, KIND_LABEL, NEEDS, POLICY_PLANS, type AppData } from "./types";
 
@@ -364,6 +366,70 @@ function insuranceSheets(data: AppData): Sheet[] {
   ];
 }
 
+function survivalSheet(data: AppData, now: Date): Sheet {
+  const s = survivalSummary(data, now.getFullYear());
+  const rows: Cell[][] = [];
+  const sections: number[] = [];
+  const section = (title: string) => {
+    sections.push(rows.length);
+    rows.push([title, null, null, ""]);
+  };
+  if (data.survival.scenario) rows.push(["假想情境", null, null, data.survival.scenario]);
+  section("收入");
+  for (const c of data.categories.filter(c => c.kind === "income" && s.avg.values[c.id])) rows.push([`現況：${c.name}`, s.avg.values[c.id], null, ""]);
+  for (const i of data.survival.incomes) rows.push([`底線：${i.name}`, null, i.amount, i.note]);
+  rows.push(["收入合計", s.current.income, s.floor.income, ""]);
+  section("開銷");
+  for (const c of data.categories.filter(c => c.kind === "expense" && (!c.archived || s.avg.values[c.id]))) {
+    const e = data.survival.expenses[c.id];
+    rows.push([c.name, s.avg.values[c.id] ?? 0, s.floorByCategory[c.id], e?.plan || (e?.floor === undefined ? "維持" : "")]);
+  }
+  rows.push(["開銷合計", s.current.expense, s.floor.expense, ""]);
+  section("結果");
+  rows.push(["每月盈餘", s.current.surplus, s.floor.surplus, ""]);
+  rows.push(["流動資產可撐（月）", null, Number.isFinite(s.runway) ? { v: s.runway, format: "dec" } : "不受限", "依最新盤點的流動資產與底線收支"]);
+  rows.push(["完全沒收入可撐（月）", null, Number.isFinite(s.zeroIncomeRunway) ? { v: s.zeroIncomeRunway, format: "dec" } : "—", ""]);
+  rows.push([`緊急預備金目標（${data.survival.targetMonths} 個月底線開銷）`, null, s.emergencyTarget, ""]);
+  rows.push(["目前保障型資產", null, s.protect, ""]);
+  const source = s.avg.source === "none" ? "尚無收支資料" : `${now.getFullYear()} 年 ${s.avg.months} 個月${s.avg.source === "actual" ? "實際" : "預算"}平均`;
+  return {
+    name: "生存底線",
+    columns: [
+      { header: "項目", width: 34 },
+      { header: `現況（${source}）`, width: 22, format: "int" },
+      { header: "底線", width: 14, format: "int" },
+      { header: "替代方案／說明", width: 40 },
+    ],
+    rows,
+    boldRows: sections,
+  };
+}
+
+function actionSheet(data: AppData): Sheet {
+  const rows: Cell[][] = [];
+  for (const w of WEEKS) {
+    for (const i of w.items) {
+      const st = data.actions.status[i.id];
+      rows.push([`第 ${w.n} 週`, w.title, i.text, st ? (st.s === "done" ? "完成" : "略過") : "未完成", st?.at ?? "", i.hint ?? ""]);
+    }
+  }
+  for (const r of recurringDue(data, today())) {
+    rows.push(["定期維護", `每${r.months === 1 ? "月" : r.months === 3 ? "季" : "年"}`, r.text, r.due ? "到期" : "未到期", r.last ?? "", `下次 ${r.next}`]);
+  }
+  return {
+    name: "行動清單",
+    columns: [
+      { header: "週別", width: 10 },
+      { header: "主題", width: 20 },
+      { header: "行動事項", width: 44 },
+      { header: "狀態", width: 10 },
+      { header: "日期", width: 12 },
+      { header: "說明", width: 32 },
+    ],
+    rows,
+  };
+}
+
 function goalSheet(data: AppData): Sheet {
   const g = goalTarget(data);
   const rows: Cell[][] = data.goals.items.map(i => [i.name, i.annual || null, i.oneOff || null]);
@@ -391,7 +457,9 @@ export function buildWorkbook(data: AppData, now = new Date()): Uint8Array {
     ...snapshotSheets(data),
     debtSheet(data, now),
     ...insuranceSheets(data),
+    survivalSheet(data, now),
     goalSheet(data),
+    actionSheet(data),
   ]);
 }
 

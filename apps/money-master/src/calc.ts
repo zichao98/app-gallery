@@ -339,3 +339,68 @@ export function addMonths(d: Date, months: number, short = false): string {
   const x = new Date(d.getFullYear(), d.getMonth() + months, 1);
   return short ? `${x.getFullYear()}/${x.getMonth() + 1}` : `${x.getFullYear()} 年 ${x.getMonth() + 1} 月`;
 }
+
+// ---------- survival baseline ----------
+
+export interface CategoryAverages {
+  source: "actual" | "budget" | "none";
+  months: number;
+  values: Record<string, number>;
+}
+
+/** Average monthly amount per category for a year: from actuals where any exist, otherwise the budget. */
+export function categoryAverages(data: AppData, year: number): CategoryAverages {
+  const yms = Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, "0")}`);
+  for (const which of ["actual", "budget"] as const) {
+    const used = yms.filter(ym => hasEntries(data, ym, which));
+    if (!used.length) continue;
+    const values: Record<string, number> = {};
+    for (const c of data.categories) {
+      const total = sum(used.map(ym => data.months[ym]?.[which][c.id] ?? 0));
+      if (total) values[c.id] = total / used.length;
+    }
+    return { source: which, months: used.length, values };
+  }
+  return { source: "none", months: 0, values: {} };
+}
+
+export interface SurvivalSummary {
+  avg: CategoryAverages;
+  current: { income: number; expense: number; surplus: number };
+  floor: { income: number; expense: number; surplus: number };
+  /** Floor amount per expense category (the current average when no floor is set). */
+  floorByCategory: Record<string, number>;
+  liquid: number;
+  protect: number;
+  /** Months the liquid assets last at baseline spending with floor income; Infinity if income covers it. */
+  runway: number;
+  /** Months the liquid assets last at baseline spending with no income at all. */
+  zeroIncomeRunway: number;
+  emergencyTarget: number;
+}
+
+export function survivalSummary(data: AppData, year: number): SurvivalSummary {
+  const avg = categoryAverages(data, year);
+  const expenseCats = data.categories.filter(c => c.kind === "expense" && (!c.archived || avg.values[c.id]));
+  const floorByCategory: Record<string, number> = {};
+  for (const c of expenseCats) floorByCategory[c.id] = data.survival.expenses[c.id]?.floor ?? avg.values[c.id] ?? 0;
+  const currentIncome = sum(data.categories.filter(c => c.kind === "income").map(c => avg.values[c.id] ?? 0));
+  const currentExpense = sum(expenseCats.map(c => avg.values[c.id] ?? 0));
+  const floorIncome = sum(data.survival.incomes.map(i => i.amount || 0));
+  const floorExpense = sum(Object.values(floorByCategory));
+  const snap = latestSnapshot(data);
+  const sv = snap ? snapshotValue(data, snap) : null;
+  const liquid = sv ? Math.max(0, sv.liquidAssets) : 0;
+  const burn = floorExpense - floorIncome;
+  return {
+    avg,
+    current: { income: currentIncome, expense: currentExpense, surplus: currentIncome - currentExpense },
+    floor: { income: floorIncome, expense: floorExpense, surplus: floorIncome - floorExpense },
+    floorByCategory,
+    liquid,
+    protect: sv ? sv.byBucket.protect : 0,
+    runway: burn > 0 ? liquid / burn : Infinity,
+    zeroIncomeRunway: floorExpense > 0 ? liquid / floorExpense : Infinity,
+    emergencyTarget: floorExpense * (data.survival.targetMonths || 0),
+  };
+}

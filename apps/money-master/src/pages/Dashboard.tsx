@@ -9,6 +9,7 @@ import {
   premiumTotal,
   requiredRate,
   simulatePayoff,
+  survivalSummary,
   snapshotValue,
   sortedSnapshots,
   yearRows,
@@ -21,6 +22,7 @@ import type { Store } from "../sync";
 import { BUCKETS, NEEDS } from "../types";
 import type { Page } from "../App";
 import { ExportExcelButton } from "./Settings";
+import { ALL_ITEMS, currentWeek, planProgress, recurringDue, today, WEEKS } from "../actionPlan";
 
 const BUCKET_CLS = ["s1", "s2", "s3", "s4"];
 
@@ -40,6 +42,7 @@ export function Dashboard({ store, go }: { store: Store; go: (p: Page) => void }
   const need = requiredRate(plan.years, plan.monthly * 12, plan.initial, target);
   const verdict = rateVerdict(need);
   const cover = coverageByNeed(data);
+  const survival = survivalSummary(data, year);
   const liveDebts = data.debts.items.filter(d => d.balance > 0);
   const debtPlan = simulatePayoff(data.debts.items, 0, [], false);
   const highRate = liveDebts.filter(d => d.rate >= 0.1).length;
@@ -121,6 +124,8 @@ export function Dashboard({ store, go }: { store: Store; go: (p: Page) => void }
           <div className="tile-sub">盈餘 ÷ 收入（實際）</div>
         </div>
       </section>
+
+      <ActionsCard store={store} go={go} />
 
       <section className="card">
         <h2>要幾年達到財務目標？</h2>
@@ -243,6 +248,16 @@ export function Dashboard({ store, go }: { store: Store; go: (p: Page) => void }
               保險盤點 →
             </button>
           </div>
+          {survival.floor.expense > 0 && (
+            <p className="small">
+              緊急預備金：保障型 <b>{compact(survival.protect)}</b> / 目標 {compact(survival.emergencyTarget)}
+              {survival.protect >= survival.emergencyTarget ? <span className="up"> ✓</span> : <span className="neg"> ! 還差 {compact(survival.emergencyTarget - survival.protect)}</span>}
+              <button className="link small" onClick={() => go("survival")}>
+                {" "}
+                生存底線 →
+              </button>
+            </p>
+          )}
           {data.insurance.policies.length || NEEDS.some(n => data.insurance.needs[n.id].target) ? (
             <>
               <ul className="check-list">
@@ -345,5 +360,58 @@ export function Dashboard({ store, go }: { store: Store; go: (p: Page) => void }
         )}
       </section>
     </div>
+  );
+}
+
+function ActionsCard({ store, go }: { store: Store; go: (p: Page) => void }) {
+  const { data } = store;
+  const now = today();
+  const week = currentWeek(data.actions.start, now);
+  const progress = planProgress(data);
+  const due = recurringDue(data, now).filter(r => r.due);
+  // next steps: unsettled items up to this week, or the earliest unsettled ones when no week applies
+  const scope = week >= 1 && week <= 10 ? WEEKS.filter(w => w.n <= week).flatMap(w => w.items) : ALL_ITEMS;
+  const next = scope.filter(i => !data.actions.status[i.id]).slice(0, 3);
+  const finished = progress.settled === progress.total;
+
+  if (!data.actions.start && progress.settled === 0) {
+    return (
+      <section className="card actions-card">
+        <div className="card-head">
+          <h2>十週行動清單</h2>
+          <button className="btn primary small" onClick={() => go("actions")}>
+            開始 →
+          </button>
+        </div>
+        <p className="muted small">照原本課程的十週進度，一週幾件小事，把盤點、保障、配置一步步做完。</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="card actions-card">
+      <div className="card-head">
+        <h2>{week >= 1 && week <= 10 ? `第 ${week} 週：${WEEKS[week - 1].title}` : finished ? "十週行動清單已完成" : "十週行動清單"}</h2>
+        <button className="link small" onClick={() => go("actions")}>
+          {progress.settled}/{progress.total} →
+        </button>
+      </div>
+      <div className="progress" aria-hidden>
+        <span style={{ width: `${(progress.settled / progress.total) * 100}%` }} />
+      </div>
+      {next.length > 0 && (
+        <ul className="next-steps">
+          {next.map(i => (
+            <li key={i.id}>{i.text}</li>
+          ))}
+        </ul>
+      )}
+      {due.length > 0 && (
+        <p className="small warn-text">
+          {due.length} 項定期檢視到期：{due.slice(0, 3).map(r => r.text).join("、")}
+          {due.length > 3 ? "…" : ""}
+        </p>
+      )}
+    </section>
   );
 }
