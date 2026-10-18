@@ -39,6 +39,11 @@ export function migrate(raw: unknown): AppData {
     goals: { ...base.goals, ...d.goals },
     plan: { ...base.plan, ...d.plan },
     allocationTarget: { ...base.allocationTarget, ...d.allocationTarget },
+    insurance: {
+      needs: { ...base.insurance.needs, ...d.insurance?.needs },
+      policies: d.insurance?.policies ?? [],
+    },
+    debts: { ...base.debts, ...d.debts },
     categories: d.categories ?? base.categories,
     months: d.months ?? {},
     accounts: d.accounts ?? [],

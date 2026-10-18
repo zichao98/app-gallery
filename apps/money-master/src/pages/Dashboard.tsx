@@ -1,10 +1,14 @@
 import { useMemo } from "react";
 import {
+  addMonths,
+  coverageByNeed,
   goalTarget,
   inflate,
   latestSnapshot,
   rateVerdict,
+  premiumTotal,
   requiredRate,
+  simulatePayoff,
   snapshotValue,
   sortedSnapshots,
   yearRows,
@@ -14,7 +18,7 @@ import { GroupedBars, LineChart, StackBar } from "../components/Charts";
 import { NumberInput } from "../components/NumberInput";
 import { compact, money, pct, shortMonth } from "../format";
 import type { Store } from "../sync";
-import { BUCKETS } from "../types";
+import { BUCKETS, NEEDS } from "../types";
 import type { Page } from "../App";
 
 const BUCKET_CLS = ["s1", "s2", "s3", "s4"];
@@ -34,6 +38,10 @@ export function Dashboard({ store, go }: { store: Store; go: (p: Page) => void }
   const target = plan.applyInflation ? inflate(goal.total, plan.inflation, plan.years) : goal.total;
   const need = requiredRate(plan.years, plan.monthly * 12, plan.initial, target);
   const verdict = rateVerdict(need);
+  const cover = coverageByNeed(data);
+  const liveDebts = data.debts.items.filter(d => d.balance > 0);
+  const debtPlan = simulatePayoff(data.debts.items, 0, [], false);
+  const highRate = liveDebts.filter(d => d.rate >= 0.1).length;
   const savingRate = sum.actualIncome > 0 ? sum.actualSurplus / sum.actualIncome : null;
 
   const yearsTable = [10, 15, 20, 25, 30, 35, 40, 45, 50].map(n => ({
@@ -219,6 +227,74 @@ export function Dashboard({ store, go }: { store: Store; go: (p: Page) => void }
             />
           ) : (
             <p className="empty-note">在「每月」填預算和實際收支後，這裡會比較兩者。</p>
+          )}
+        </section>
+      </div>
+
+      <div className="two-col">
+        <section className="card">
+          <div className="card-head">
+            <h2>保障</h2>
+            <button className="link small" onClick={() => go("insurance")}>
+              保險盤點 →
+            </button>
+          </div>
+          {data.insurance.policies.length || NEEDS.some(n => data.insurance.needs[n.id].target) ? (
+            <>
+              <ul className="check-list">
+                {NEEDS.map(n => {
+                  const c = cover[n.id];
+                  return (
+                    <li key={n.id}>
+                      <span>{n.kinds}</span>
+                      {c.gap === undefined ? (
+                        <span className="muted small">未設目標 · 現有 {compact(c.covered)}</span>
+                      ) : c.gap > 0 ? (
+                        <span className="neg">! 缺 {compact(c.gap)}</span>
+                      ) : (
+                        <span className="up">✓ 足夠</span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="muted small">每年保費 {money(premiumTotal(data))}</p>
+            </>
+          ) : (
+            <p className="empty-note">列出手上的保單，檢查生病、身故、失能、財損四種情況的保障夠不夠。</p>
+          )}
+        </section>
+
+        <section className="card">
+          <div className="card-head">
+            <h2>債務</h2>
+            <button className="link small" onClick={() => go("debts")}>
+              債務處置 →
+            </button>
+          </div>
+          {liveDebts.length ? (
+            <>
+              <div className="stat-line">
+                <span>
+                  餘額 <b>{compact(liveDebts.reduce((a, d) => a + d.balance, 0))}</b>
+                </span>
+                <span>
+                  每月還款 <b>{compact(liveDebts.reduce((a, d) => a + d.monthlyPayment, 0))}</b>
+                </span>
+              </div>
+              <p className="small">
+                {debtPlan.paidOff ? (
+                  <>
+                    照目前月付，<b>{addMonths(new Date(), debtPlan.months)}</b> 無債一身輕。
+                  </>
+                ) : (
+                  <span className="neg">! 有債務的月付蓋不過利息，餘額不會減少。</span>
+                )}
+                {highRate > 0 && <span className="warn-text"> {highRate} 筆年利率 10% 以上，優先處理。</span>}
+              </p>
+            </>
+          ) : (
+            <p className="empty-note">沒有記錄債務。有房貸、車貸、信用卡分期的話，列出來看何時能還清。</p>
           )}
         </section>
       </div>

@@ -1150,3 +1150,242 @@ label.check {
   margin: 0;
   font-size: 0.9rem;
 }
+
+/* ---------- list items (policies, debts) ---------- */
+
+.item-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.item + .item {
+  border-top: 1px solid var(--border);
+}
+
+.item.open {
+  background: var(--surface-2);
+}
+
+.item-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 16px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item-summary:hover {
+  background: var(--surface-2);
+}
+
+.item-title {
+  font-weight: 600;
+  min-width: 0;
+}
+
+.item-figures {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 14px 14px;
+}
+
+.item-body input,
+.item-body select {
+  background: var(--surface);
+}
+
+.item-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.form-grid .span-2 {
+  grid-column: span 2;
+}
+
+@media (max-width: 460px) {
+  .form-grid .span-2 {
+    grid-column: auto;
+  }
+}
+
+.badge.info {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.needs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .needs {
+    grid-template-columns: 1fr;
+  }
+}
+
+.need {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.need h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.98rem;
+}
+
+.need p {
+  margin: 0;
+}
+
+.need-figures {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 10px;
+  align-items: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.need-figures label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0;
+}
+
+@media (max-width: 560px) {
+  .segmented {
+    grid-template-columns: 1fr;
+  }
+}
+
+.segmented button {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.segmented button.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.priority {
+  margin: 0 0 10px;
+  padding-left: 22px;
+}
+
+.priority li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.priority li > span:first-child {
+  margin-right: 10px;
+}
+
+.order-btns {
+  float: right;
+}
+
+.check-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.check-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+/* seven tabs on a phone: tighter items */
+@media (max-width: 760px) {
+  .nav-item {
+    padding: 6px 0;
+    font-size: 0.68rem;
+  }
+}
+
+.compare {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.compare-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.compare-row.current {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.compare-name {
+  font-weight: 600;
+}
+
+.compare-figs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.compare-figs > span {
+  display: flex;
+  flex-direction: column;
+}

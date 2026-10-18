@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { futureValue, goalTarget, monthTotals, requiredRate, snapshotValue, yearRows } from "../src/calc";
+import { amortize, coverageByNeed, debtOrder, futureValue, goalTarget, monthTotals, premiumByMonth, requiredRate, simulatePayoff, snapshotValue, yearRows } from "../src/calc";
 import { compact, parseAmount } from "../src/format";
-import { defaultData, type AppData } from "../src/types";
+import { defaultData, type AppData, type Debt } from "../src/types";
 
 describe("requiredRate", () => {
   it("matches textbook annuity values (Excel RATE convention)", () => {
@@ -85,5 +85,57 @@ describe("parseAmount", () => {
     expect(parseAmount("12k")).toBe(12000);
     expect(parseAmount("")).toBeUndefined();
     expect(parseAmount("abc")).toBeNaN();
+  });
+});
+
+describe("debts", () => {
+  const debt = (id: string, balance: number, rate: number, monthlyPayment: number): Debt => ({
+    id, name: id, nature: "信貸", principal: balance, balance, monthlyPayment, rate, action: "keep", note: "",
+  });
+
+  it("amortizes like a standard loan", () => {
+    // 100,000 at 12%/yr over 12 months → PMT 8,884.88, total interest 6,618.55
+    const a = amortize(100_000, 0.12, 8_884.88);
+    expect(a.months).toBe(12);
+    expect(a.interest).toBeCloseTo(6_618.55, 0);
+  });
+
+  it("flags payments that never cover the interest", () => {
+    expect(amortize(100_000, 0.12, 1_000)).toMatchObject({ paidOff: false, months: Infinity });
+    expect(amortize(0, 0.12, 1_000)).toMatchObject({ paidOff: true, months: 0 });
+  });
+
+  it("matches amortize for one debt without extra money", () => {
+    const d = debt("a", 100_000, 0.12, 8_884.88);
+    const p = simulatePayoff([d], 0, ["a"], false);
+    expect(p.months).toBe(12);
+    expect(p.interest).toBeCloseTo(6_618.55, 0);
+  });
+
+  it("orders debts by strategy and avalanche never costs more interest", () => {
+    const debts = [debt("card", 50_000, 0.15, 2_000), debt("car", 20_000, 0.03, 1_000), debt("loan", 300_000, 0.06, 6_000)];
+    expect(debtOrder(debts, "avalanche")).toEqual(["card", "loan", "car"]);
+    expect(debtOrder(debts, "snowball")).toEqual(["car", "card", "loan"]);
+    const base = simulatePayoff(debts, 0, [], false);
+    const av = simulatePayoff(debts, 5_000, debtOrder(debts, "avalanche"));
+    const sb = simulatePayoff(debts, 5_000, debtOrder(debts, "snowball"));
+    expect(av.months).toBeLessThan(base.months);
+    expect(av.interest).toBeLessThanOrEqual(sb.interest);
+    expect(sb.payoffMonth.car).toBeLessThan(av.payoffMonth.car);
+  });
+});
+
+describe("insurance coverage", () => {
+  it("separates held, cancelled and planned policies", () => {
+    const d = defaultData();
+    const base = { insurer: "", product: "", policyholder: "", insured: "", coverageNote: "", contact: "", planNote: "" };
+    d.insurance.needs.life.target = 5_000_000;
+    d.insurance.policies = [
+      { ...base, id: "1", need: "life", annualPremium: 20_000, coverage: 2_000_000, plan: "keep", payMonth: 3 },
+      { ...base, id: "2", need: "life", annualPremium: 30_000, coverage: 1_000_000, plan: "cancel", payMonth: 3 },
+      { ...base, id: "3", need: "life", annualPremium: 10_000, coverage: 3_000_000, plan: "add" },
+    ];
+    expect(coverageByNeed(d).life).toMatchObject({ covered: 3_000_000, afterPlan: 5_000_000, gap: 2_000_000, premium: 50_000, count: 2 });
+    expect(premiumByMonth(d)[2]).toBe(50_000);
   });
 });
