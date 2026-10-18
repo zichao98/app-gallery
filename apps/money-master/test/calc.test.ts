@@ -139,3 +139,17 @@ describe("insurance coverage", () => {
     expect(premiumByMonth(d)[2]).toBe(50_000);
   });
 });
+
+describe("excel export", () => {
+  it("builds a zip with one worksheet per section", async () => {
+    const { unzipSync, strFromU8 } = await import("fflate");
+    const { buildWorkbook } = await import("../src/exportXlsx");
+    const d = defaultData();
+    d.goals.items = [{ id: "g", name: "度假 & <旅行>", annual: 800_000, oneOff: 0 }];
+    const files = unzipSync(buildWorkbook(d, new Date(2026, 9, 18)));
+    const wb = strFromU8(files["xl/workbook.xml"]);
+    expect(wb.match(/<sheet /g)).toHaveLength(10);
+    expect(wb).toContain('name="保單"');
+    expect(strFromU8(files["xl/worksheets/sheet10.xml"])).toContain("度假 &amp; &lt;旅行&gt;");
+  });
+});

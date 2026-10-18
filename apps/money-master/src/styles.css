@@ -1389,3 +1389,10 @@ label.check {
   display: flex;
   flex-direction: column;
 }
+
+.page-head.with-action {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}

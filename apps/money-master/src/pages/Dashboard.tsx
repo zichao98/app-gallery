@@ -20,6 +20,7 @@ import { compact, money, pct, shortMonth } from "../format";
 import type { Store } from "../sync";
 import { BUCKETS, NEEDS } from "../types";
 import type { Page } from "../App";
+import { ExportExcelButton } from "./Settings";
 
 const BUCKET_CLS = ["s1", "s2", "s3", "s4"];
 
@@ -51,9 +52,12 @@ export function Dashboard({ store, go }: { store: Store; go: (p: Page) => void }
 
   return (
     <div className="page">
-      <header className="page-head">
-        <h1>財務全景</h1>
-        <p className="muted">目標和現況放在一起看，算出還差多少、需要多少報酬率。</p>
+      <header className="page-head with-action">
+        <div>
+          <h1>財務全景</h1>
+          <p className="muted">目標和現況放在一起看，算出還差多少、需要多少報酬率。</p>
+        </div>
+        <ExportExcelButton store={store} />
       </header>
 
       <section className="tiles">
